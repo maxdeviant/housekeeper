@@ -1,2 +1,5 @@
 /target
 **/*.rs.bk
+
+# Example "home" directory
+/examples/home
