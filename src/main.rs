@@ -45,6 +45,12 @@ fn symlink_dotfile<P: AsRef<Path>>(home: P, dotfile: &Dotfile) -> Result<(), std
 #[derive(StructOpt, Debug)]
 #[structopt(name = "housekeeper")]
 struct Args {
+    /// The source directory for the dotfiles.
+    #[structopt(required = true, parse(from_os_str))]
+    dotfiles_directory: PathBuf,
+
+    /// The path to the "home" directory.
+    /// Defaults to the user's home directory.
     #[structopt(long = "home", parse(from_os_str))]
     home_directory: Option<PathBuf>,
 }
