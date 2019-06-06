@@ -5,5 +5,6 @@ authors = ["Marshall Bowers <elliott.codes@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+dirs = "2.0"
 paw = "1.0"
 structopt = { version = "0.2", features = ["paw"] }
