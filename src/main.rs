@@ -1,4 +1,4 @@
-use std::fs::{create_dir_all, read_dir};
+use std::fs::{canonicalize, create_dir_all, read_dir};
 use std::path::{Path, PathBuf};
 
 use structopt::StructOpt;
@@ -28,12 +28,7 @@ impl Dotfile {
 }
 
 fn symlink_dotfile<P: AsRef<Path>>(home: P, dotfile: &Dotfile) -> Result<(), std::io::Error> {
-    let source = {
-        let mut path = PathBuf::new();
-        path.push(dotfile.path.clone());
-        path.push(dotfile.name());
-        path
-    };
+    let source = canonicalize(&dotfile.path)?;
     let destination = {
         let mut path = PathBuf::new();
         path.push(home);
