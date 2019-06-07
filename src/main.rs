@@ -71,8 +71,7 @@ fn main(args: Args) -> Result<(), std::io::Error> {
         let mut dotfiles: Vec<Dotfile> = Vec::new();
 
         for entry in read_dir(args.dotfiles_directory)? {
-            let entry = entry?;
-            let path = entry.path();
+            let path = entry?.path();
 
             if !path.is_dir() {
                 dotfiles.push(Dotfile::from_path(path));
