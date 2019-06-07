@@ -1,7 +1,11 @@
 [package]
 name = "housekeeper"
 version = "0.1.0"
+description = "A dotfile manager, not your housekeeper."
+repository = "https://github.com/maxdeviant/housekeeper"
+keywords = ["dotfiles"]
 authors = ["Marshall Bowers <elliott.codes@gmail.com>"]
+license = "MIT"
 edition = "2018"
 
 [dependencies]
