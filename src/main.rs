@@ -2,9 +2,17 @@
 extern crate log;
 
 use std::fs::{canonicalize, create_dir_all, read_dir};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use structopt::StructOpt;
+
+struct Installer {
+    home_directory: PathBuf,
+}
+
+trait Install {
+    fn install(&self, installer: &Installer) -> Result<(), std::io::Error>;
+}
 
 #[derive(Debug)]
 struct Dotfile {
@@ -30,39 +38,41 @@ impl Dotfile {
     }
 }
 
-fn symlink_dotfile<P: AsRef<Path>>(home: P, dotfile: &Dotfile) -> Result<(), std::io::Error> {
-    let source = canonicalize(&dotfile.path)?;
-    let destination = {
-        let mut path = PathBuf::new();
-        path.push(home);
-        path.push(dotfile.dotname());
-        path
-    };
+impl Install for Dotfile {
+    fn install(&self, installer: &Installer) -> Result<(), std::io::Error> {
+        let source = canonicalize(&self.path)?;
+        let destination = {
+            let mut path = PathBuf::new();
+            path.push(&installer.home_directory);
+            path.push(self.dotname());
+            path
+        };
 
-    if destination.exists() {
-        if destination.is_dir() {
-            warn!("{} already exists as a directory!", &dotfile.dotname());
-            return Ok(());
+        if destination.exists() {
+            if destination.is_dir() {
+                warn!("{} already exists as a directory!", &self.dotname());
+                return Ok(());
+            }
+
+            let metadata = std::fs::symlink_metadata(&destination)?;
+            if !metadata.file_type().is_symlink() {
+                warn!("{} already exists as a file!", &self.dotname());
+                return Ok(());
+            }
+
+            std::fs::remove_file(&destination)?;
         }
 
-        let metadata = std::fs::symlink_metadata(&destination)?;
-        if !metadata.file_type().is_symlink() {
-            warn!("{} already exists as a file!", &dotfile.dotname());
-            return Ok(());
+        info!("Linking {:?} to {:?}", source, destination);
+
+        if cfg!(windows) {
+            unimplemented!()
+        } else {
+            std::os::unix::fs::symlink(source, destination)?;
         }
 
-        std::fs::remove_file(&destination)?;
+        Ok(())
     }
-
-    info!("Linking {:?} to {:?}", source, destination);
-
-    if cfg!(windows) {
-        unimplemented!()
-    } else {
-        std::os::unix::fs::symlink(source, destination)?;
-    }
-
-    Ok(())
 }
 
 fn configure_logger() -> Result<(), fern::InitError> {
@@ -118,8 +128,10 @@ fn main(args: Args) -> Result<(), std::io::Error> {
         dotfiles
     };
 
+    let installer = Installer { home_directory };
+
     for dotfile in dotfiles {
-        symlink_dotfile(&home_directory, &dotfile)?;
+        dotfile.install(&installer)?;
     }
 
     Ok(())
