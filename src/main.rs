@@ -8,6 +8,7 @@ use structopt::StructOpt;
 
 struct Installer {
     home_directory: PathBuf,
+    force: bool,
 }
 
 trait Install {
@@ -57,7 +58,10 @@ impl Install for Dotfile {
             let metadata = std::fs::symlink_metadata(&destination)?;
             if !metadata.file_type().is_symlink() {
                 warn!("{} already exists as a file!", &self.dotname());
-                return Ok(());
+
+                if !installer.force {
+                    return Ok(());
+                }
             }
 
             std::fs::remove_file(&destination)?;
@@ -101,6 +105,11 @@ struct Args {
     /// Defaults to the user's home directory.
     #[structopt(long = "home", parse(from_os_str))]
     home_directory: Option<PathBuf>,
+
+    /// Forces the creation of dotfiles, obliterating any files or
+    /// directories that are in the way.
+    #[structopt(short = "f", long = "force")]
+    force: bool,
 }
 
 #[paw::main]
@@ -128,7 +137,10 @@ fn main(args: Args) -> Result<(), std::io::Error> {
         dotfiles
     };
 
-    let installer = Installer { home_directory };
+    let installer = Installer {
+        home_directory,
+        force: args.force,
+    };
 
     for dotfile in dotfiles {
         dotfile.install(&installer)?;
