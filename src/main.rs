@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate log;
+
 use std::fs::{canonicalize, create_dir_all, read_dir};
 use std::path::{Path, PathBuf};
 
@@ -36,12 +39,44 @@ fn symlink_dotfile<P: AsRef<Path>>(home: P, dotfile: &Dotfile) -> Result<(), std
         path
     };
 
+    if destination.exists() {
+        if destination.is_dir() {
+            warn!("{} already exists as a directory!", &dotfile.dotname());
+            return Ok(());
+        }
+
+        let metadata = std::fs::symlink_metadata(&destination)?;
+        if !metadata.file_type().is_symlink() {
+            warn!("{} already exists as a file!", &dotfile.dotname());
+            return Ok(());
+        }
+
+        std::fs::remove_file(&destination)?;
+    }
+
+    info!("Linking {:?} to {:?}", source, destination);
+
     if cfg!(windows) {
         unimplemented!()
     } else {
         std::os::unix::fs::symlink(source, destination)?;
     }
 
+    Ok(())
+}
+
+fn configure_logger() -> Result<(), fern::InitError> {
+    use fern::colors::{Color, ColoredLevelConfig};
+
+    let colors = ColoredLevelConfig::new().info(Color::Green);
+
+    fern::Dispatch::new()
+        .format(move |out, message, record| {
+            out.finish(format_args!("{} {}", colors.color(record.level()), message))
+        })
+        .level(log::LevelFilter::Debug)
+        .chain(std::io::stdout())
+        .apply()?;
     Ok(())
 }
 
@@ -60,6 +95,8 @@ struct Args {
 
 #[paw::main]
 fn main(args: Args) -> Result<(), std::io::Error> {
+    configure_logger().expect("Failed to configure logger.");
+
     let home_directory = args
         .home_directory
         .or_else(dirs::home_dir)
